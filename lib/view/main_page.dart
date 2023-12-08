@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mini_tourist/model/client.dart';
 import 'package:mini_tourist/view_model/card_view_model.dart';
 import 'package:mini_tourist/view_model/client_view_model.dart';
+import 'package:widget_slider/widget_slider.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -16,6 +17,19 @@ class _MainPageState extends State<MainPage> {
   late ClientViewModel clientViewModel;
   final CardViewModel cardViewModel = CardViewModel();
   late List<String> images = [];
+  String dropdownValue = 'Categoría';
+  var categories = [  
+    'Categoría',   
+    'Premium', 
+    'Parques y atracciones', 
+    'Restaurantes, bares y cafeterías', 
+    'Lugares y eventos', 
+    'Tiendas',
+    'Servicios' 
+  ];
+  final controller = SliderController(
+    duration: const Duration(milliseconds: 600),
+  );
   int _selectedIndex = 0;
   static const TextStyle optionStyle =
       TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
@@ -56,12 +70,9 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _onCardNamesUpdated() {
-    // Handle updates when card names change
     setState(() {}); // Trigger a rebuild to update the UI with new card names
     String baseImageURL = 'http://192.168.0.2:9090/api/card/premium/';
     images = clientViewModel.cardNames.map((cardInfo) => '$baseImageURL${cardInfo.cardName}.jpg').toList();
-
-    print('Card names loaded: $images');
   }
 
   Future<void> getCardNames() async {
@@ -74,34 +85,60 @@ class _MainPageState extends State<MainPage> {
   }
 
   void displayImageDetails(int index) {
-    final selectedClientId = clientViewModel.cardNames[index].clientId; // Get the database ID
+  final selectedClientId = clientViewModel.cardNames[index].clientId;
+  final imageURL = images[index];
 
-    if (selectedClientId != null) {
-      print("Selected client id: $selectedClientId");
+  cardViewModel.addCardStatus(
+    clientId: selectedClientId,
+    status: 'Visited',
+    city: 'Zihuatanejo',
+    date: DateTime.now(),
+  );
 
-      cardViewModel.addCardStatus(
-        clientId: selectedClientId,
-        status: 'Visited',
-        city: 'Zihuatanejo',
-        date: DateTime.now()
-      );
-    }
-    
-  showModalBottomSheet<void>(
+  showDialog(
     context: context,
     builder: (BuildContext context) {
-      return Container(
-        padding: EdgeInsets.all(16.0),
-        child: SizedBox(
-          child: Column( 
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Image.network(images[index]),
-            SizedBox(height: 20),
-            Text('Database Real ID: $selectedClientId'),
-          ],
-        )
+      return AlertDialog(
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  FloatingActionButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Icon(Icons.close),
+                  )
+                ],
+              ),
+              Image.network(images[index])
+            ],
+          ),
         ),
+        actions: <Widget>[
+          ElevatedButton(
+            onPressed: () {
+              cardViewModel.donwloadImage(imageURL);
+              cardViewModel.addCardStatus(
+                clientId: selectedClientId,
+                status: 'Downloaded',
+                city: 'Zihuatanejo',
+                date: DateTime.now(),
+              );
+              print("Downloaded image: $imageURL");
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Descargar cupón')
+              ],
+            ),
+          )
+        ],
       );
     },
   );
@@ -110,33 +147,75 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-        body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 100),
-            if (images.isNotEmpty)
-              SizedBox(
-                height: 700,
-                child: PageView.builder(
-                  itemCount: images.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        displayImageDetails(index);
-                      },
-                      child: Image.network(images[index], fit: BoxFit.cover),
-                    );
+        body: 
+          SizedBox(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start, // Align children at the start
+        children: [
+          SizedBox(
+            height: 200,
+          ),
+          Center(
+            child: WidgetSlider(
+              fixedSize: 300,
+              controller: controller,
+              itemCount: images.length,
+              itemBuilder: (context, index, activeIndex) {
+                return TextButton(
+                  onPressed: () async {
+                    await controller.moveTo?.call(index);
+                    displayImageDetails(index);
                   },
-                ),
-              )
-            else
-              const Center(child: CircularProgressIndicator()),
-          ],
-        ),
+                  child: Container(
+                    margin: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      image: DecorationImage(
+                        fit: BoxFit.fill,
+                        image: NetworkImage(images[index]),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.shade50,
+                          offset: const Offset(0, 8),
+                          spreadRadius: 5,
+                          blurRadius: 10,
+                        ),
+                        BoxShadow(
+                          color: Colors.grey.shade100,
+                          offset: const Offset(0, 8),
+                          spreadRadius: 5,
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Center(
+            child: DropdownButton(
+              value: dropdownValue,
+              icon: const Icon(Icons.keyboard_arrow_down),
+              items: categories.map((String categories) {
+                return DropdownMenuItem(
+                  value: categories,
+                  child: Text(categories),
+                );
+              }).toList(),
+              onChanged: (String? value) {
+                setState(() {
+                  dropdownValue = value!.toLowerCase().replaceAll(' ', '_');
+                  print("Selected category: " + dropdownValue);
+                });
+              },
+            ),
+          ),
+        ],
       ),
+    ),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(

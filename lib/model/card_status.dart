@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 class CardStatus {
   int clientId;
@@ -47,6 +49,22 @@ class CardApiService {
       print("Status created");
     } else {
       throw Exception('Failed to add status');
+    }
+  }
+
+  Future<void> downloadImage(String imageUrl) async {
+    final response = await http.get(Uri.parse(imageUrl));
+
+    if (response.statusCode == 200) {
+      // Get the app's document directory to save the downloaded image
+      final appDir = await getApplicationDocumentsDirectory();
+      final file = File('${appDir.path}/downloaded_image.jpg');
+
+      // Write the image data into the file
+      await file.writeAsBytes(response.bodyBytes);
+      print('Image downloaded to: ${file.path}');
+    } else {
+      print('Failed to download image: ${response.statusCode}');
     }
   }
 }

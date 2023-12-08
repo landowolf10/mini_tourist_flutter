@@ -12,6 +12,8 @@ dependencies:
   provider: ^6.1.1
   http: ^1.1.0
   fan_carousel_image_slider: any
+  widget_slider: ^0.1.0
+  path_provider: ^2.0.14
 
 dev_dependencies:
   flutter_test:

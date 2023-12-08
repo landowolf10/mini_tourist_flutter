@@ -12,9 +12,6 @@ class ClientViewModel extends ChangeNotifier {
       cardNames = names;
 
       print('Viewmodel client id: ${cardNames[0].clientId}');
-      /*for (var client in cardNames) {
-      print('Client ID: ${client.clientId}, Name: ${client.cardName}');
-    }*/
       notifyListeners();
     } catch (e) {
       // Handle errors

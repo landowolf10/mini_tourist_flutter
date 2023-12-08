@@ -27,4 +27,15 @@ class CardViewModel extends ChangeNotifier {
       print('Error: $e');
     }
   }
+
+  Future<void> donwloadImage(String imageURL) async {
+    try {
+      await _apiService.downloadImage(imageURL);
+
+      notifyListeners();
+    } catch (e) {
+      // Handle errors
+      print('Error: $e');
+    }
+  }
 }
